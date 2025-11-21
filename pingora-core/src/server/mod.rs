@@ -157,27 +157,6 @@ impl ShutdownSignalWatch for UnixShutdownSignalWatch {
     }
 }
 
-  #[cfg(windows)]
-    async fn main_loop(&self) -> ShutdownType {
-        let mut graceful_terminate_signal = signal::windows::ctrl_c().unwrap();
-        tokio::select! {
-            _ = graceful_terminate_signal.recv() => {
-                // we receive a graceful terminate, all instances are instructed to stop
-                info!("CTRL-C received, gracefully exiting");
-                // graceful shutdown if there are listening sockets
-                info!("Broadcasting graceful shutdown");
-                match self.shutdown_watch.send(true) {
-                    Ok(_) => { info!("Graceful shutdown started!"); }
-                    Err(e) => {
-                        error!("Graceful shutdown broadcast failed: {e}");
-                    }
-                }
-                info!("Broadcast graceful shutdown complete");
-                ShutdownType::Graceful
-            }
-        }
-    }
-
 /// Arguments to configure running of the pingora server.
 pub struct RunArgs {
     /// Signal for initating shutdown
@@ -319,6 +298,27 @@ impl Server {
                     info!("No socks to send, shutting down.");
                     ShutdownType::Graceful
                 }
+            }
+        }
+    }
+
+    #[cfg(windows)]
+    async fn main_loop(&self, _run_args: RunArgs) -> ShutdownType {
+        let mut graceful_terminate_signal = signal::windows::ctrl_c().unwrap();
+        tokio::select! {
+            _ = graceful_terminate_signal.recv() => {
+                // we receive a graceful terminate, all instances are instructed to stop
+                info!("CTRL-C received, gracefully exiting");
+                // graceful shutdown if there are listening sockets
+                info!("Broadcasting graceful shutdown");
+                match self.shutdown_watch.send(true) {
+                    Ok(_) => { info!("Graceful shutdown started!"); }
+                    Err(e) => {
+                        error!("Graceful shutdown broadcast failed: {e}");
+                    }
+                }
+                info!("Broadcast graceful shutdown complete");
+                ShutdownType::Graceful
             }
         }
     }
