@@ -303,7 +303,7 @@ impl Server {
     }
 
     #[cfg(windows)]
-    async fn main_loop(&self, _run_args: RunArgs) -> ShutdownType {
+    async fn main_loop(&self, run_args: RunArgs) -> ShutdownType {
         let mut graceful_terminate_signal = signal::windows::ctrl_c().unwrap();
         tokio::select! {
             _ = graceful_terminate_signal.recv() => {
